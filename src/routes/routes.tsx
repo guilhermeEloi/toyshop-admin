@@ -8,8 +8,11 @@ const DashboardPage = lazy(() => import("../pages/dashboard"));
 const NotFoundPage = lazy(() => import("../pages/notFound"));
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
-  const { token } = useAuth();
-  if (!token) return <Navigate to="/login" replace />;
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) return <div>Carregando...</div>;
+  if (!isAuthenticated()) return <Navigate to="/login" replace />;
+
   return children;
 }
 
@@ -20,7 +23,6 @@ export default function AppRoutes() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-
           <Route
             path="/"
             element={
@@ -29,7 +31,6 @@ export default function AppRoutes() {
               </PrivateRoute>
             }
           />
-
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

@@ -1,12 +1,18 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useEffect, useContext } from "react";
 import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
 import api from "@/services";
 
 interface User {
   id: number;
   username: string;
+}
+
+interface JwtPayload {
+  sub: number;
+  username: string;
+  exp: number;
 }
 
 interface AuthContextType {
@@ -15,6 +21,8 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  isAuthenticated: () => boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,36 +32,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const savedToken = Cookies.get("access_token");
     const savedUser = Cookies.get("user");
+
     if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+      try {
+        const decoded = jwtDecode<JwtPayload>(savedToken);
+        if (decoded.exp && Date.now() < decoded.exp * 1000) {
+          setToken(savedToken);
+          setUser(JSON.parse(savedUser));
+        } else {
+          Cookies.remove("access_token");
+          Cookies.remove("user");
+        }
+      } catch {
+        Cookies.remove("access_token");
+        Cookies.remove("user");
+      }
     }
+
+    setLoading(false);
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const isTokenValid = (token: string | null) => {
+    if (!token) return false;
     try {
-      const { data } = await api.post("/auth/login", { username, password });
-      Cookies.set("access_token", data.access_token, {
-        secure: true,
-        sameSite: "Strict",
-      });
-      Cookies.set("user", JSON.stringify(data.user), {
-        secure: true,
-        sameSite: "Strict",
-      });
-
-      setToken(data.access_token);
-      setUser(data.user);
-    } catch (err: any) {
-      if (err.response?.status === 401) {
-        throw new Error(err.response.data.message || "Credenciais inválidas");
-      }
-      throw err;
+      const decoded = jwtDecode<JwtPayload>(token);
+      return decoded.exp ? Date.now() < decoded.exp * 1000 : false;
+    } catch {
+      return false;
     }
+  };
+
+  const isAuthenticated = () => token !== null && isTokenValid(token);
+
+  const login = async (username: string, password: string) => {
+    const { data } = await api.post("/auth/login", { username, password });
+    Cookies.set("access_token", data.access_token, {
+      secure: true,
+      sameSite: "Strict",
+    });
+    Cookies.set("user", JSON.stringify(data.user), {
+      secure: true,
+      sameSite: "Strict",
+    });
+    setToken(data.access_token);
+    setUser(data.user);
   };
 
   const register = async (username: string, password: string) => {
@@ -69,7 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ token, user, login, register, logout, isAuthenticated, loading }}
+    >
       {children}
     </AuthContext.Provider>
   );
