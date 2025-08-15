@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 const LoginPage = lazy(() => import("../pages/login"));
 const RegisterPage = lazy(() => import("../pages/register"));
 const DashboardPage = lazy(() => import("../pages/dashboard"));
+const CustomersPage = lazy(() => import("../pages/customers"));
 const NotFoundPage = lazy(() => import("../pages/notFound"));
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
@@ -28,6 +29,14 @@ export default function AppRoutes() {
             element={
               <PrivateRoute>
                 <DashboardPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/customers"
+            element={
+              <PrivateRoute>
+                <CustomersPage />
               </PrivateRoute>
             }
           />
