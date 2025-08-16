@@ -1,11 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+
 import {
   DataGrid,
   type GridColDef,
   type GridRenderCellParams,
 } from "@mui/x-data-grid";
+import { ptBR } from "@mui/x-data-grid/locales";
 import {
   Box,
   CircularProgress,
@@ -82,6 +85,7 @@ export default function CustomersPage() {
       });
 
       setCustomers((prev) => prev.filter((c) => c.id !== selectedClient.id));
+      toast.success("Cliente excluído com sucesso!");
     } catch (error) {
       console.error(error);
     } finally {
@@ -167,7 +171,7 @@ export default function CustomersPage() {
           columns={columns}
           pageSizeOptions={[5, 10]}
           getRowId={(row) => row.id}
-          autoHeight
+          localeText={ptBR.components.MuiDataGrid.defaultProps.localeText}
         />
       </Box>
       <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
@@ -179,7 +183,11 @@ export default function CustomersPage() {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteOpen(false)} color="inherit">
+          <Button
+            onClick={() => setDeleteOpen(false)}
+            color="inherit"
+            variant="contained"
+          >
             Cancelar
           </Button>
           <Button onClick={confirmDelete} color="error" variant="contained">

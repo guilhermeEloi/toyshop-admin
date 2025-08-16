@@ -9,7 +9,7 @@ import CustomButton from "@/components/Button";
 import Input from "@/components/Input";
 
 import api from "@/services/index";
-import { formatISODate, formatToDisplay } from "@/utils";
+import { formatISODate, formatToDisplay, isValidEmail } from "@/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
 import {
@@ -26,6 +26,7 @@ export default function EditCustomerPage() {
     email: "",
     birthdate: "",
   });
+  const [emailInputError, setEmailInputError] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { token } = useAuth();
@@ -55,6 +56,7 @@ export default function EditCustomerPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    setEmailInputError(false);
     if (name === "birthdate") {
       setFormData((prev) => ({
         ...prev,
@@ -70,6 +72,12 @@ export default function EditCustomerPage() {
 
     if (!formData.name || !formData.email || !formData.birthdate) {
       toast.error("Preencha todos os campos!");
+      return;
+    }
+
+    if (formData.email && !isValidEmail(formData.email)) {
+      setEmailInputError(true);
+      toast.error("Email inválido");
       return;
     }
 
@@ -123,6 +131,8 @@ export default function EditCustomerPage() {
               onChange={handleChange}
               variant="outlined"
               type="email"
+              error={emailInputError}
+              helperText={emailInputError ? "E-mail inválido" : null}
               required
             />
             <Input
