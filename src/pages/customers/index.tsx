@@ -1,7 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { DataGrid, type GridColDef } from "@mui/x-data-grid";
-import { Box, CircularProgress } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import {
+  DataGrid,
+  type GridColDef,
+  type GridRenderCellParams,
+} from "@mui/x-data-grid";
+import {
+  Box,
+  CircularProgress,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from "@mui/material";
+import { Edit, Delete } from "@mui/icons-material";
 
 import NavBar from "@/components/NavBar";
 import CustomButton from "@/components/Button";
@@ -10,13 +26,21 @@ import api from "@/services/index";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { Container, ContainerBtn, PageTitle } from "./styles";
-import { listClients, type Client } from "@/utils";
+import {
+  formatCurrency,
+  formatToDisplay,
+  listClients,
+  type Client,
+} from "@/utils";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   const { token } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchCustomers() {
@@ -40,17 +64,30 @@ export default function CustomersPage() {
     fetchCustomers();
   }, [token]);
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "-";
-    const [year, month, day] = dateString.split("-");
-    return `${day}/${month}/${year}`;
+  const handleEdit = (client: Client) => {
+    navigate(`/customers/edit/${client.id}`);
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
+  const handleDelete = (client: Client) => {
+    setSelectedClient(client);
+    setDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedClient) return;
+
+    try {
+      await api.delete(`/customers/${selectedClient.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setCustomers((prev) => prev.filter((c) => c.id !== selectedClient.id));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDeleteOpen(false);
+      setSelectedClient(null);
+    }
   };
 
   const columns: GridColDef<Client>[] = [
@@ -60,7 +97,7 @@ export default function CustomersPage() {
       field: "birthDate",
       headerName: "Nascimento",
       width: 150,
-      valueGetter: (value) => formatDate(value),
+      valueGetter: (value) => formatToDisplay(value),
     },
     {
       field: "totalSales",
@@ -71,6 +108,31 @@ export default function CustomersPage() {
       valueFormatter: (value) => formatCurrency(value as number),
     },
     { field: "missingLetter", headerName: "Letra Faltante", width: 150 },
+    {
+      field: "actions",
+      headerName: "Ações",
+      width: 120,
+      sortable: false,
+      filterable: false,
+      renderCell: (params: GridRenderCellParams<Client>) => (
+        <Box display="flex" gap={1}>
+          <IconButton
+            color="primary"
+            onClick={() => handleEdit(params.row)}
+            size="small"
+          >
+            <Edit fontSize="inherit" />
+          </IconButton>
+          <IconButton
+            color="error"
+            onClick={() => handleDelete(params.row)}
+            size="small"
+          >
+            <Delete fontSize="inherit" />
+          </IconButton>
+        </Box>
+      ),
+    },
   ];
 
   if (loading) {
@@ -96,6 +158,7 @@ export default function CustomersPage() {
           type="button"
           variant="contained"
           style={{ minWidth: "120px" }}
+          onClick={() => navigate("/customers/new")}
         />
       </ContainerBtn>
       <Box p={2}>
@@ -103,10 +166,27 @@ export default function CustomersPage() {
           rows={customers}
           columns={columns}
           pageSizeOptions={[5, 10]}
-          getRowId={(row) => row.email}
+          getRowId={(row) => row.id}
           autoHeight
         />
       </Box>
+      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Tem certeza que deseja excluir o cliente{" "}
+            <b>{selectedClient?.fullName}</b>?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteOpen(false)} color="inherit">
+            Cancelar
+          </Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Confirmar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

@@ -6,6 +6,10 @@ const LoginPage = lazy(() => import("../pages/login"));
 const RegisterPage = lazy(() => import("../pages/register"));
 const DashboardPage = lazy(() => import("../pages/dashboard"));
 const CustomersPage = lazy(() => import("../pages/customers"));
+const RegisterCustomerPage = lazy(
+  () => import("../pages/customers/newCustomers")
+);
+const EditCustomerPage = lazy(() => import("../pages/customers/editCustomers"));
 const NotFoundPage = lazy(() => import("../pages/notFound"));
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
@@ -37,6 +41,22 @@ export default function AppRoutes() {
             element={
               <PrivateRoute>
                 <CustomersPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/customers/new"
+            element={
+              <PrivateRoute>
+                <RegisterCustomerPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/customers/edit/:id"
+            element={
+              <PrivateRoute>
+                <EditCustomerPage />
               </PrivateRoute>
             }
           />
