@@ -75,7 +75,7 @@ export default function EditCustomerPage() {
 
     try {
       setLoading(true);
-      await api.put(
+      await api.patch(
         `/customers/${id}`,
         {
           name: formData.name,
